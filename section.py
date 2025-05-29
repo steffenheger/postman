@@ -28,7 +28,19 @@ def getRoute(G):
     for u, v in matching_result:
         path = nx.shortest_path(G, u, v, weight="weight")
         for i in range(len(path) - 1):
-            G.add_edge(path[i], path[i + 1], weight=G[path[i]][path[i + 1]]['weight'])
+            u_, v_ = path[i], path[i + 1]
+            edge_data = G.get_edge_data(u_, v_)
+
+            # If MultiGraph/MultiDiGraph, get first edge
+            if isinstance(edge_data, dict) and 0 in edge_data:
+                weight = edge_data[0].get("weight", 1)
+            elif isinstance(edge_data, dict):
+                weight = edge_data.get("weight", 1)
+            else:
+                weight = 1
+
+            # Add the edge again (duplicates are OK in MultiGraphs)
+            G.add_edge(u_, v_, weight=weight)
 
     print('Step 5: Now G is Eulerian – find an Eulerian trail')
     trail = list(euler.eulerian_path(G))  # Not a circuit
@@ -70,7 +82,7 @@ if __name__ == '__main__':
     # 3. Extract the Shapely polygon
     polygon = shape(geojson['features'][0]['geometry'])
 
-    G_sub = getSubGraph(G, polygon)
+    G_sub = getSubGraph(G, polygon).to_undirected()
 
     if nx.is_eulerian(G_sub):
         print('is eulerian')
@@ -78,7 +90,12 @@ if __name__ == '__main__':
         print('is not eulerian')
         trail = getRoute(G_sub)
         print(len(trail))
+        ordered_nodes = [trail[0][0]] + [v for u, v in trail]
+        print(f"Number of edges in trail: {len(trail)}")
+        print(f"Number of nodes in path: {len(ordered_nodes)}")
+        print("First 10 nodes in Eulerian path:", ordered_nodes[:10])
+
 
     # Optional: Plot the clipped graph
     # fig, ax = ox.plot_graph(G_sub, show=False, save=True, filepath='clipped_graph.png')
-
+    
