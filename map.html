@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Eulerian Path Visualization</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet/dist/leaflet.css"
+  />
+  <style>
+    #map { height: 100vh; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    var map = L.map('map').setView([49.35, 8.42], 14);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Paste your Python generated nodes array here:
+    var nodes = [
+      // Paste here the JSON output from Python
+    ];
+
+    nodes.forEach(function(node) {
+      L.marker([node.lat, node.lon])
+        .addTo(map)
+        .bindTooltip("Order: " + node.order, { permanent: true, direction: 'right' });
+    });
+  </script>
+</body>
+</html>

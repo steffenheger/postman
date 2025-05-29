@@ -1,6 +1,7 @@
 import osmnx as ox
 from shapely.geometry import shape
 from osmnx import truncate
+import json
 
 import networkx as nx
 from networkx.algorithms import matching, euler
@@ -93,9 +94,16 @@ if __name__ == '__main__':
         ordered_nodes = [trail[0][0]] + [v for u, v in trail]
         print(f"Number of edges in trail: {len(trail)}")
         print(f"Number of nodes in path: {len(ordered_nodes)}")
-        print("First 10 nodes in Eulerian path:", ordered_nodes[:10])
 
-
-    # Optional: Plot the clipped graph
-    # fig, ax = ox.plot_graph(G_sub, show=False, save=True, filepath='clipped_graph.png')
-    
+        # Prepare list of nodes with lat/lon and order
+        nodes_with_coords = []
+        for idx, node_id in enumerate(ordered_nodes, start=1):
+            node_data = G_sub.nodes[node_id]
+            nodes_with_coords.append({
+                "lat": node_data['y'],
+                "lon": node_data['x'],
+                "order": idx
+            })
+        print("First 10 nodes in Eulerian path:", nodes_with_coords[:10])
+        with open("eulerian_order_points.geojson", "w") as f:
+            json.dump(nodes_with_coords, f)
