@@ -55,13 +55,13 @@ def getSubGraph(G, polygon):
 
 if __name__ == '__main__':
     place_name = 'Speyer, Germany'
-    section = 'center.geojson'
+    section = 'sectors.geojson'
 
     with open(section, 'r') as f:
         geojson = json.load(f)
-    polygon = shape(geojson['features'][1]['geometry'])
+    polygon = shape(geojson['features'][0]['geometry'])
 
-    G = ox.graph_from_place(place_name, network_type='drive')
+    G = ox.graph_from_place(place_name, network_type='walk')
     G_sub = getSubGraph(G, polygon).to_undirected()
 
     fig, ax = ox.plot_graph(G_sub, show=False, save=True, filepath='clipped_graph.png')
