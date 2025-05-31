@@ -74,8 +74,8 @@ if __name__ == '__main__':
         trail = getRoute(G_sub)
     
     ordered_nodes = [trail[0][0]] + [v for u, v in trail]
-    # print(f"Number of edges in trail: {len(trail)}")
-    # print(f"Number of nodes in path: {len(ordered_nodes)}")
+    print(f"Number of edges in trail: {len(trail)}")
+    print(f"Number of nodes in path: {len(ordered_nodes)}")
 
     # Prepare list of nodes with lat/lon and order
     nodes_with_coords = []
