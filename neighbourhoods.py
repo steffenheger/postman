@@ -5,8 +5,10 @@ import matplotlib.pyplot as plt
 import time
 from sklearn.cluster import KMeans, SpectralClustering
 import pandas as pd
+from shapely.geometry import shape
+from osmnx import truncate
 
-def solve_rural_postman_problem_with_partitions(place_name="Speyer, Germany", n_partitions=4, partition_method='geographic'):
+def solve_rural_postman_problem_with_partitions(G, place_name="Speyer, Germany", n_partitions=4, partition_method='geographic'):
     """
     Solve the Rural Postman Problem with neighborhood partitioning.
     
@@ -15,14 +17,6 @@ def solve_rural_postman_problem_with_partitions(place_name="Speyer, Germany", n_
     - n_partitions: Number of neighborhoods to create
     - partition_method: 'geographic', 'spectral', 'community', or 'balanced'
     """
-    
-    print(f"Downloading street network for {place_name}...")
-    start_time = time.time()
-    
-    # Get the graph from OSM
-    G = ox.graph_from_place(place_name, network_type="drive")
-    print(f"Graph downloaded in {time.time() - start_time:.2f} seconds")
-    print(f"Graph has {len(G.nodes)} nodes and {len(G.edges)} edges")
     
     # Convert to undirected graph for RPP
     G_undirected = G.to_undirected()
@@ -620,8 +614,42 @@ def visualize_partitions(G, partitions, solutions, place_name):
     plt.tight_layout()
     plt.show()
 
+def getSubGraph(G, polygon):
+    G_clipped = truncate.truncate_graph_polygon(G, polygon)
+    return G_clipped
+
 # Main execution with different partitioning strategies
 if __name__ == "__main__":
+    geojson = {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "properties": {},
+                "geometry": {
+                    "coordinates": [[
+                        [8.421755809732616, 49.35124935839016],
+                        [8.419390347008829, 49.3478846880686],
+                        [8.428287959092387, 49.34074460440627],
+                        [8.43256315318996, 49.340673905328686],
+                        [8.442046705581703, 49.34775744812055],
+                        [8.437706407004413, 49.35321433251107],
+                        [8.425813988902433, 49.35293160725601],
+                        [8.421755809732616, 49.35124935839016]
+                    ]],
+                    "type": "Polygon"
+                }
+            }
+        ]
+    }
+
+    polygon = shape(geojson['features'][0]['geometry'])
+
+    # Get the graph from OSM
+    G = ox.graph_from_place('Speyer, Germany', network_type="drive")
+    G_sub = getSubGraph(G, polygon)
+
+
     # Test different partitioning methods
     methods = ['geographic', 'community', 'balanced']
     
@@ -632,6 +660,7 @@ if __name__ == "__main__":
         
         try:
             result = solve_rural_postman_problem_with_partitions(
+                G_sub,
                 "Speyer, Germany", 
                 n_partitions=4, 
                 partition_method=method

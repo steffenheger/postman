@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Path Viewer with Server File</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    #map { height: 600px; }
+    #controls { margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+<div id="map"></div>
+<div id="controls">
+  <button id="nextEdge">Show Next Edge</button>
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+  let nodes = [];
+  let edgeIndex = 0;
+  let currentNodeMarker;
+  const edges = [];
+  let map;
+
+  // Load node list from a local JSON file on the server
+  fetch('http://localhost:8000/path.geojson')
+    .then(response => response.json())
+    .then(data => {
+      nodes = data.sort((a, b) => a.order - b.order);
+      initMap();
+      createGoogleDirectionsLink();
+    })
+    .catch(err => {
+      console.error('Failed to load nodes.json:', err);
+      alert('Failed to load path data.');
+    });
+
+  function initMap() {
+    map = L.map('map').setView([nodes[0].lat, nodes[0].lon], 15);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Draw all nodes as small blue dots
+    nodes.forEach(node => {
+      L.circleMarker([node.lat, node.lon], {
+        radius: 4,
+        color: 'blue',
+        fillOpacity: 1
+      }).addTo(map);
+    });
+
+    // Add the green "current node" marker
+    currentNodeMarker = L.circleMarker([nodes[0].lat, nodes[0].lon], {
+      radius: 6,
+      color: 'green',
+      fillColor: 'green',
+      fillOpacity: 1
+    }).addTo(map);
+
+    // Set up button
+    document.getElementById('nextEdge').addEventListener('click', showNextEdge);
+  }
+
+  function createGoogleDirectionsLink() {
+    if (nodes.length < 2) return;
+
+    const baseUrl = 'https://www.google.com/maps/dir/';
+    const path = nodes.map(n => `${n.lat},${n.lon}`).join('/');
+    const fullUrl = baseUrl + path;
+
+    const link = document.createElement('a');
+    link.href = fullUrl;
+    link.textContent = 'Open full route in Google Maps';
+    link.target = '_blank';
+    link.style.display = 'block';
+    link.style.marginTop = '10px';
+
+    document.getElementById('controls').appendChild(link);
+  }
+
+
+  function showNextEdge() {
+    if (edgeIndex < nodes.length - 1) {
+      const from = nodes[edgeIndex];
+      const to = nodes[edgeIndex + 1];
+
+      const edge = L.polyline([
+        [from.lat, from.lon],
+        [to.lat, to.lon]
+      ], {
+        color: 'red',
+        weight: 4
+      }).addTo(map);
+
+      edges.push(edge);
+
+      currentNodeMarker.setLatLng([to.lat, to.lon]);
+
+      edgeIndex++;
+    } else {
+      alert('End of path reached!');
+    }
+  }
+</script>
+
+</body>
+</html>

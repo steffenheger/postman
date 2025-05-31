@@ -54,56 +54,40 @@ def getSubGraph(G, polygon):
     return G_clipped
 
 if __name__ == '__main__':
-    place_name = "Speyer, Germany"
-    G = ox.graph_from_place(place_name, network_type="drive")
+    place_name = 'Speyer, Germany'
+    section = 'center.geojson'
 
-    geojson = {
-        "type": "FeatureCollection",
-        "features": [
-            {
-                "type": "Feature",
-                "properties": {},
-                "geometry": {
-                    "coordinates": [[
-                        [8.421755809732616, 49.35124935839016],
-                        [8.419390347008829, 49.3478846880686],
-                        [8.428287959092387, 49.34074460440627],
-                        [8.43256315318996, 49.340673905328686],
-                        [8.442046705581703, 49.34775744812055],
-                        [8.437706407004413, 49.35321433251107],
-                        [8.425813988902433, 49.35293160725601],
-                        [8.421755809732616, 49.35124935839016]
-                    ]],
-                    "type": "Polygon"
-                }
-            }
-        ]
-    }
+    with open(section, 'r') as f:
+        geojson = json.load(f)
+    polygon = shape(geojson['features'][1]['geometry'])
 
-    # 3. Extract the Shapely polygon
-    polygon = shape(geojson['features'][0]['geometry'])
-
+    G = ox.graph_from_place(place_name, network_type='drive')
     G_sub = getSubGraph(G, polygon).to_undirected()
 
-    if nx.is_eulerian(G_sub):
-        print('is eulerian')
-    else:
-        print('is not eulerian')
-        trail = getRoute(G_sub)
-        print(len(trail))
-        ordered_nodes = [trail[0][0]] + [v for u, v in trail]
-        print(f"Number of edges in trail: {len(trail)}")
-        print(f"Number of nodes in path: {len(ordered_nodes)}")
+    fig, ax = ox.plot_graph(G_sub, show=False, save=True, filepath='clipped_graph.png')
 
-        # Prepare list of nodes with lat/lon and order
-        nodes_with_coords = []
-        for idx, node_id in enumerate(ordered_nodes, start=1):
-            node_data = G_sub.nodes[node_id]
-            nodes_with_coords.append({
-                "lat": node_data['y'],
-                "lon": node_data['x'],
-                "order": idx
-            })
-        print("First 10 nodes in Eulerian path:", nodes_with_coords[:10])
-        with open("eulerian_order_points.geojson", "w") as f:
-            json.dump(nodes_with_coords, f)
+    trail = list()
+
+    if nx.is_eulerian(G_sub):
+        trail = list(euler.eulerian_path(G))  # Not a circuit
+    else:
+        trail = getRoute(G_sub)
+    
+    ordered_nodes = [trail[0][0]] + [v for u, v in trail]
+    # print(f"Number of edges in trail: {len(trail)}")
+    # print(f"Number of nodes in path: {len(ordered_nodes)}")
+
+    # Prepare list of nodes with lat/lon and order
+    nodes_with_coords = []
+    for idx, node_id in enumerate(ordered_nodes, start=1):
+        node_data = G_sub.nodes[node_id]
+        nodes_with_coords.append({
+            "lat": node_data['y'],
+            "lon": node_data['x'],
+            "order": idx
+        })
+
+    # TODO: section the path for foot route
+    print("First 25 nodes in Eulerian path:", nodes_with_coords[:25])
+    with open("path.geojson", "w") as f:
+        json.dump(nodes_with_coords, f)
