@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Path Viewer</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    #map { height: 80vh; }
+    #controls {
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 10px;
+    }
+    #controls button {
+      font-size: 1.5em;
+      padding: 0.6em 1.2em;
+      border: none;
+      border-radius: 8px;
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+    #sectors {
+      font-size: 0.5em;
+      padding: 0.6em 1.2em;
+      border: none;
+      border-radius: 8px;
+      background-color: white;
+      color: white;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<div id="map"></div>
+<div id="controls">
+  <button id="prevEdge">Zurück</button>
+  <span></span> <!-- spacer -->
+  <div id="sectors">
+    <button id="sector1" onclick="select(0)">Sektor 3</button>
+    <button id="sector2" onclick="select(1)">Sektor 4</button>
+  </div>
+  <span></span> <!-- spacer -->
+  <button id="nextEdge">Weiter</button>
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+  let nodes = [];
+  let edgeIndex = 0;
+  let currentNodeMarker;
+  let nodeMarkers = [];
+  const edges = [];
+  let map;
+  let directionsLinks = [];
+
+  const path1 = [{"lat": 49.3139084, "lon": 8.4314935, "order": 1}, {"lat": 49.31366, "lon": 8.4311077, "order": 2}, {"lat": 49.3129942, "lon": 8.4300604, "order": 3}, {"lat": 49.313368, "lon": 8.4292806, "order": 4}, {"lat": 49.3138699, "lon": 8.4282795, "order": 5}, {"lat": 49.314962, "lon": 8.4290741, "order": 6}, {"lat": 49.3150614, "lon": 8.4291421, "order": 7}, {"lat": 49.3151931, "lon": 8.4281096, "order": 8}, {"lat": 49.3150614, "lon": 8.4291421, "order": 9}, {"lat": 49.3152867, "lon": 8.4292883, "order": 10}, {"lat": 49.3153978, "lon": 8.4293531, "order": 11}, {"lat": 49.3155125, "lon": 8.4294281, "order": 12}, {"lat": 49.31557, "lon": 8.4294669, "order": 13}, {"lat": 49.3157029, "lon": 8.4295515, "order": 14}, {"lat": 49.3159056, "lon": 8.4296756, "order": 15}, {"lat": 49.3159226, "lon": 8.4296212, "order": 16}, {"lat": 49.3155956, "lon": 8.4293336, "order": 17}, {"lat": 49.315526, "lon": 8.429106, "order": 18}, {"lat": 49.3155787, "lon": 8.4286941, "order": 19}, {"lat": 49.3159575, "lon": 8.4277359, "order": 20}, {"lat": 49.3161955, "lon": 8.4271823, "order": 21}, {"lat": 49.3162943, "lon": 8.4269464, "order": 22}, {"lat": 49.3165274, "lon": 8.4264012, "order": 23}, {"lat": 49.3169446, "lon": 8.4268153, "order": 24}, {"lat": 49.3165274, "lon": 8.4264012, "order": 25}, {"lat": 49.3162943, "lon": 8.4269464, "order": 26}, {"lat": 49.3159534, "lon": 8.4266261, "order": 27}, {"lat": 49.3162943, "lon": 8.4269464, "order": 28}, {"lat": 49.3161955, "lon": 8.4271823, "order": 29}, {"lat": 49.3164368, "lon": 8.4274305, "order": 30}, {"lat": 49.3166035, "lon": 8.4270189, "order": 31}, {"lat": 49.3164368, "lon": 8.4274305, "order": 32}, {"lat": 49.3165911, "lon": 8.4276441, "order": 33}, {"lat": 49.3162559, "lon": 8.4283052, "order": 34}, {"lat": 49.3165911, "lon": 8.4276441, "order": 35}, {"lat": 49.3174541, "lon": 8.4274018, "order": 36}, {"lat": 49.3173438, "lon": 8.4275312, "order": 37}, {"lat": 49.3174541, "lon": 8.4274018, "order": 38}, {"lat": 49.3174852, "lon": 8.4273639, "order": 39}, {"lat": 49.3174539, "lon": 8.4272992, "order": 40}, {"lat": 49.3174852, "lon": 8.4273639, "order": 41}, {"lat": 49.3175208, "lon": 8.4273329, "order": 42}, {"lat": 49.3175549, "lon": 8.4274682, "order": 43}, {"lat": 49.3175711, "lon": 8.4275653, "order": 44}, {"lat": 49.3175549, "lon": 8.4274682, "order": 45}, {"lat": 49.3179397, "lon": 8.4277426, "order": 46}, {"lat": 49.3178919, "lon": 8.4279394, "order": 47}, {"lat": 49.3179335, "lon": 8.4282258, "order": 48}, {"lat": 49.3178919, "lon": 8.4279394, "order": 49}, {"lat": 49.3180661, "lon": 8.4281337, "order": 50}, {"lat": 49.3178919, "lon": 8.4279394, "order": 51}, {"lat": 49.3179397, "lon": 8.4277426, "order": 52}, {"lat": 49.3182355, "lon": 8.4282875, "order": 53}, {"lat": 49.3183896, "lon": 8.4290324, "order": 54}, {"lat": 49.3184012, "lon": 8.4290968, "order": 55}, {"lat": 49.3185091, "lon": 8.4297846, "order": 56}, {"lat": 49.3184012, "lon": 8.4290968, "order": 57}, {"lat": 49.3176802, "lon": 8.4296138, "order": 58}, {"lat": 49.3176836, "lon": 8.4298849, "order": 59}, {"lat": 49.3176925, "lon": 8.430137, "order": 60}, {"lat": 49.3178101, "lon": 8.4301211, "order": 61}, {"lat": 49.3181503, "lon": 8.4297989, "order": 62}, {"lat": 49.3181091, "lon": 8.4296355, "order": 63}, {"lat": 49.3181503, "lon": 8.4297989, "order": 64}, {"lat": 49.3181793, "lon": 8.4299087, "order": 65}, {"lat": 49.3178101, "lon": 8.4301211, "order": 66}, {"lat": 49.3181793, "lon": 8.4299087, "order": 67}, {"lat": 49.3185091, "lon": 8.4297846, "order": 68}, {"lat": 49.3185429, "lon": 8.4300593, "order": 69}, {"lat": 49.3185642, "lon": 8.4302532, "order": 70}, {"lat": 49.3186658, "lon": 8.4312564, "order": 71}, {"lat": 49.31859, "lon": 8.4313005, "order": 72}, {"lat": 49.3181459, "lon": 8.4312708, "order": 73}, {"lat": 49.3181409, "lon": 8.4313324, "order": 74}, {"lat": 49.3181459, "lon": 8.4312708, "order": 75}, {"lat": 49.3181943, "lon": 8.4308693, "order": 76}, {"lat": 49.3181459, "lon": 8.4312708, "order": 77}, {"lat": 49.3179574, "lon": 8.4312394, "order": 78}, {"lat": 49.3179514, "lon": 8.4312994, "order": 79}, {"lat": 49.3179574, "lon": 8.4312394, "order": 80}, {"lat": 49.3180453, "lon": 8.4307633, "order": 81}, {"lat": 49.3179574, "lon": 8.4312394, "order": 82}, {"lat": 49.3177334, "lon": 8.4312012, "order": 83}, {"lat": 49.3177276, "lon": 8.4313213, "order": 84}, {"lat": 49.3177334, "lon": 8.4312012, "order": 85}, {"lat": 49.3177209, "lon": 8.4311456, "order": 86}, {"lat": 49.3176949, "lon": 8.4311419, "order": 87}, {"lat": 49.3177012, "lon": 8.4310432, "order": 88}, {"lat": 49.3176925, "lon": 8.430137, "order": 89}, {"lat": 49.3177012, "lon": 8.4310432, "order": 90}, {"lat": 49.3177245, "lon": 8.4310443, "order": 91}, {"lat": 49.3179032, "lon": 8.4309259, "order": 92}, {"lat": 49.3177245, "lon": 8.4310443, "order": 93}, {"lat": 49.3177209, "lon": 8.4311456, "order": 94}, {"lat": 49.3176949, "lon": 8.4311419, "order": 95}, {"lat": 49.3176333, "lon": 8.4311344, "order": 96}, {"lat": 49.3176528, "lon": 8.4310365, "order": 97}, {"lat": 49.3176333, "lon": 8.4311344, "order": 98}, {"lat": 49.3173617, "lon": 8.431062, "order": 99}, {"lat": 49.3170813, "lon": 8.4305595, "order": 100}, {"lat": 49.3170374, "lon": 8.4306224, "order": 101}, {"lat": 49.3166633, "lon": 8.4302003, "order": 102}, {"lat": 49.3169087, "lon": 8.429578, "order": 103}, {"lat": 49.3171074, "lon": 8.4297832, "order": 104}, {"lat": 49.3169087, "lon": 8.429578, "order": 105}, {"lat": 49.3169268, "lon": 8.4295346, "order": 106}, {"lat": 49.3167501, "lon": 8.4293571, "order": 107}, {"lat": 49.3169268, "lon": 8.4295346, "order": 108}, {"lat": 49.3170802, "lon": 8.4291749, "order": 109}, {"lat": 49.3172581, "lon": 8.4287678, "order": 110}, {"lat": 49.3170802, "lon": 8.4291749, "order": 111}, {"lat": 49.3173003, "lon": 8.429406, "order": 112}, {"lat": 49.3170802, "lon": 8.4291749, "order": 113}, {"lat": 49.3170555, "lon": 8.4291508, "order": 114}, {"lat": 49.3169112, "lon": 8.4290049, "order": 115}, {"lat": 49.3170555, "lon": 8.4291508, "order": 116}, {"lat": 49.3171024, "lon": 8.4283109, "order": 117}, {"lat": 49.3174733, "lon": 8.4280442, "order": 118}, {"lat": 49.3175711, "lon": 8.4275653, "order": 119}, {"lat": 49.3176673, "lon": 8.4284758, "order": 120}, {"lat": 49.3174733, "lon": 8.4280442, "order": 121}, {"lat": 49.3176673, "lon": 8.4284758, "order": 122}, {"lat": 49.3176797, "lon": 8.4286542, "order": 123}, {"lat": 49.3179804, "lon": 8.4286488, "order": 124}, {"lat": 49.3176797, "lon": 8.4286542, "order": 125}, {"lat": 49.3176855, "lon": 8.4288888, "order": 126}, {"lat": 49.3176394, "lon": 8.428882, "order": 127}, {"lat": 49.3176855, "lon": 8.4288888, "order": 128}, {"lat": 49.3176844, "lon": 8.4290425, "order": 129}, {"lat": 49.3174934, "lon": 8.4289781, "order": 130}, {"lat": 49.3176844, "lon": 8.4290425, "order": 131}, {"lat": 49.3176828, "lon": 8.4292638, "order": 132}, {"lat": 49.3176811, "lon": 8.4294924, "order": 133}, {"lat": 49.3176828, "lon": 8.4292638, "order": 134}, {"lat": 49.3178973, "lon": 8.4291805, "order": 135}, {"lat": 49.3183896, "lon": 8.4290324, "order": 136}, {"lat": 49.3178973, "lon": 8.4291805, "order": 137}, {"lat": 49.3176811, "lon": 8.4294924, "order": 138}, {"lat": 49.3176802, "lon": 8.4296138, "order": 139}, {"lat": 49.3176836, "lon": 8.4298849, "order": 140}, {"lat": 49.3170813, "lon": 8.4305595, "order": 141}, {"lat": 49.3170374, "lon": 8.4306224, "order": 142}, {"lat": 49.3166633, "lon": 8.4302003, "order": 143}, {"lat": 49.3162989, "lon": 8.4299398, "order": 144}, {"lat": 49.3162639, "lon": 8.429916, "order": 145}, {"lat": 49.3161235, "lon": 8.429818, "order": 146}, {"lat": 49.3162639, "lon": 8.429916, "order": 147}, {"lat": 49.3163177, "lon": 8.4296712, "order": 148}, {"lat": 49.3161783, "lon": 8.4295837, "order": 149}, {"lat": 49.3161235, "lon": 8.429818, "order": 150}, {"lat": 49.3160001, "lon": 8.4297391, "order": 151}, {"lat": 49.3159702, "lon": 8.4297199, "order": 152}, {"lat": 49.3160362, "lon": 8.4294868, "order": 153}, {"lat": 49.3161783, "lon": 8.4295837, "order": 154}, {"lat": 49.3163177, "lon": 8.4296712, "order": 155}, {"lat": 49.3165483, "lon": 8.4289867, "order": 156}, {"lat": 49.3165403, "lon": 8.4289222, "order": 157}, {"lat": 49.3165483, "lon": 8.4289867, "order": 158}, {"lat": 49.3165403, "lon": 8.4289222, "order": 159}, {"lat": 49.3165317, "lon": 8.4288523, "order": 160}, {"lat": 49.3166044, "lon": 8.4286001, "order": 161}, {"lat": 49.3171024, "lon": 8.4283109, "order": 162}, {"lat": 49.3166044, "lon": 8.4286001, "order": 163}, {"lat": 49.3164783, "lon": 8.4285153, "order": 164}, {"lat": 49.3165317, "lon": 8.4288523, "order": 165}, {"lat": 49.3164783, "lon": 8.4285153, "order": 166}, {"lat": 49.3163418, "lon": 8.4284235, "order": 167}, {"lat": 49.3162742, "lon": 8.4286601, "order": 168}, {"lat": 49.3163418, "lon": 8.4284235, "order": 169}, {"lat": 49.3162559, "lon": 8.4283052, "order": 170}, {"lat": 49.3160558, "lon": 8.429198, "order": 171}, {"lat": 49.3159226, "lon": 8.4296212, "order": 172}, {"lat": 49.3160558, "lon": 8.429198, "order": 173}, {"lat": 49.3160362, "lon": 8.4294868, "order": 174}, {"lat": 49.3159702, "lon": 8.4297199, "order": 175}, {"lat": 49.3159056, "lon": 8.4296756, "order": 176}, {"lat": 49.3157029, "lon": 8.4295515, "order": 177}, {"lat": 49.3155956, "lon": 8.4293336, "order": 178}, {"lat": 49.3155671, "lon": 8.429349, "order": 179}, {"lat": 49.31557, "lon": 8.4294669, "order": 180}, {"lat": 49.3155671, "lon": 8.429349, "order": 181}, {"lat": 49.3155169, "lon": 8.4293056, "order": 182}, {"lat": 49.3155125, "lon": 8.4294281, "order": 183}, {"lat": 49.3155169, "lon": 8.4293056, "order": 184}, {"lat": 49.315526, "lon": 8.429106, "order": 185}, {"lat": 49.3155169, "lon": 8.4293056, "order": 186}, {"lat": 49.3154097, "lon": 8.4292292, "order": 187}, {"lat": 49.3152867, "lon": 8.4292883, "order": 188}, {"lat": 49.3153978, "lon": 8.4293531, "order": 189}, {"lat": 49.3154097, "lon": 8.4292292, "order": 190}, {"lat": 49.3155787, "lon": 8.4286941, "order": 191}, {"lat": 49.3159575, "lon": 8.4277359, "order": 192}, {"lat": 49.3144342, "lon": 8.4265516, "order": 193}, {"lat": 49.3138699, "lon": 8.4282795, "order": 194}, {"lat": 49.314962, "lon": 8.4290741, "order": 195}, {"lat": 49.3149156, "lon": 8.4292012, "order": 196}, {"lat": 49.3148864, "lon": 8.4292868, "order": 197}, {"lat": 49.3148146, "lon": 8.4294469, "order": 198}, {"lat": 49.3147657, "lon": 8.429556, "order": 199}, {"lat": 49.3147234, "lon": 8.4296191, "order": 200}, {"lat": 49.3146411, "lon": 8.4297348, "order": 201}, {"lat": 49.3146189, "lon": 8.4297752, "order": 202}, {"lat": 49.3145516, "lon": 8.4297047, "order": 203}, {"lat": 49.3146189, "lon": 8.4297752, "order": 204}, {"lat": 49.3145986, "lon": 8.4298149, "order": 205}, {"lat": 49.3145058, "lon": 8.4300156, "order": 206}, {"lat": 49.3144577, "lon": 8.4299936, "order": 207}, {"lat": 49.3144081, "lon": 8.4298777, "order": 208}, {"lat": 49.3144577, "lon": 8.4299936, "order": 209}, {"lat": 49.3143742, "lon": 8.4301712, "order": 210}, {"lat": 49.3144577, "lon": 8.4299936, "order": 211}, {"lat": 49.3145058, "lon": 8.4300156, "order": 212}, {"lat": 49.3144676, "lon": 8.4303556, "order": 213}, {"lat": 49.313368, "lon": 8.4292806, "order": 214}, {"lat": 49.3129942, "lon": 8.4300604, "order": 215}, {"lat": 49.31366, "lon": 8.4311077, "order": 216}, {"lat": 49.3129252, "lon": 8.4308615, "order": 217}, {"lat": 49.31366, "lon": 8.4311077, "order": 218}, {"lat": 49.3139084, "lon": 8.4314935, "order": 219}, {"lat": 49.3133185, "lon": 8.4328223, "order": 220}, {"lat": 49.3128906, "lon": 8.4320884, "order": 221}, {"lat": 49.312481, "lon": 8.4326559, "order": 222}, {"lat": 49.3121672, "lon": 8.4330905, "order": 223}, {"lat": 49.3122181, "lon": 8.4331863, "order": 224}, {"lat": 49.3129496, "lon": 8.4343962, "order": 225}, {"lat": 49.3131024, "lon": 8.4337436, "order": 226}, {"lat": 49.312481, "lon": 8.4326559, "order": 227}, {"lat": 49.3119465, "lon": 8.4317303, "order": 228}, {"lat": 49.312481, "lon": 8.4326559, "order": 229}, {"lat": 49.3131024, "lon": 8.4337436, "order": 230}, {"lat": 49.313153, "lon": 8.4335297, "order": 231}, {"lat": 49.3133185, "lon": 8.4328223, "order": 232}, {"lat": 49.3139084, "lon": 8.4314935, "order": 233}];
+
+  const path2 = [{"lat": 49.3103489, "lon": 8.4257086, "order": 1}, {"lat": 49.3104825, "lon": 8.425806, "order": 2}, {"lat": 49.3103489, "lon": 8.4257086, "order": 3}, {"lat": 49.3105254, "lon": 8.4251075, "order": 4}, {"lat": 49.310625, "lon": 8.4247499, "order": 5}, {"lat": 49.3107428, "lon": 8.4240712, "order": 6}, {"lat": 49.3112495, "lon": 8.4244045, "order": 7}, {"lat": 49.3113979, "lon": 8.4238736, "order": 8}, {"lat": 49.3108516, "lon": 8.4235376, "order": 9}, {"lat": 49.3107428, "lon": 8.4240712, "order": 10}, {"lat": 49.310625, "lon": 8.4247499, "order": 11}, {"lat": 49.3109881, "lon": 8.4249877, "order": 12}, {"lat": 49.3111919, "lon": 8.4251255, "order": 13}, {"lat": 49.3109881, "lon": 8.4249877, "order": 14}, {"lat": 49.3107185, "lon": 8.4259801, "order": 15}, {"lat": 49.3106306, "lon": 8.4259141, "order": 16}, {"lat": 49.3104825, "lon": 8.425806, "order": 17}, {"lat": 49.3105425, "lon": 8.4261865, "order": 18}, {"lat": 49.3106306, "lon": 8.4259141, "order": 19}, {"lat": 49.3105425, "lon": 8.4261865, "order": 20}, {"lat": 49.3105581, "lon": 8.426276, "order": 21}, {"lat": 49.3106301, "lon": 8.4263825, "order": 22}, {"lat": 49.3108835, "lon": 8.4267486, "order": 23}, {"lat": 49.3111563, "lon": 8.4270557, "order": 24}, {"lat": 49.3114067, "lon": 8.4273315, "order": 25}, {"lat": 49.3117022, "lon": 8.4276454, "order": 26}, {"lat": 49.3117389, "lon": 8.4273262, "order": 27}, {"lat": 49.3117022, "lon": 8.4276454, "order": 28}, {"lat": 49.3117425, "lon": 8.4276858, "order": 29}, {"lat": 49.3118496, "lon": 8.4273588, "order": 30}, {"lat": 49.3117425, "lon": 8.4276858, "order": 31}, {"lat": 49.3117722, "lon": 8.4277156, "order": 32}, {"lat": 49.3118862, "lon": 8.4274221, "order": 33}, {"lat": 49.3117722, "lon": 8.4277156, "order": 34}, {"lat": 49.312216, "lon": 8.4281608, "order": 35}, {"lat": 49.3125818, "lon": 8.4285093, "order": 36}, {"lat": 49.312851, "lon": 8.4287611, "order": 37}, {"lat": 49.313368, "lon": 8.4292806, "order": 38}, {"lat": 49.3129942, "lon": 8.4300604, "order": 39}, {"lat": 49.3125425, "lon": 8.4293494, "order": 40}, {"lat": 49.312851, "lon": 8.4287611, "order": 41}, {"lat": 49.313368, "lon": 8.4292806, "order": 42}, {"lat": 49.3138699, "lon": 8.4282795, "order": 43}, {"lat": 49.3144342, "lon": 8.4265516, "order": 44}, {"lat": 49.3138657, "lon": 8.4263608, "order": 45}, {"lat": 49.313334, "lon": 8.4262016, "order": 46}, {"lat": 49.3129508, "lon": 8.42757, "order": 47}, {"lat": 49.3125818, "lon": 8.4285093, "order": 48}, {"lat": 49.3129508, "lon": 8.42757, "order": 49}, {"lat": 49.3134177, "lon": 8.427958, "order": 50}, {"lat": 49.3138699, "lon": 8.4282795, "order": 51}, {"lat": 49.3144342, "lon": 8.4265516, "order": 52}, {"lat": 49.3149097, "lon": 8.4249424, "order": 53}, {"lat": 49.3144078, "lon": 8.4244855, "order": 54}, {"lat": 49.3138995, "lon": 8.4239861, "order": 55}, {"lat": 49.3136146, "lon": 8.4250962, "order": 56}, {"lat": 49.313334, "lon": 8.4262016, "order": 57}, {"lat": 49.3136146, "lon": 8.4250962, "order": 58}, {"lat": 49.3133621, "lon": 8.4249365, "order": 59}, {"lat": 49.313501, "lon": 8.424324, "order": 60}, {"lat": 49.3133621, "lon": 8.4249365, "order": 61}, {"lat": 49.3128303, "lon": 8.4246003, "order": 62}, {"lat": 49.3131731, "lon": 8.4233572, "order": 63}, {"lat": 49.3125903, "lon": 8.4227926, "order": 64}, {"lat": 49.3131731, "lon": 8.4233572, "order": 65}, {"lat": 49.3138995, "lon": 8.4239861, "order": 66}, {"lat": 49.3144078, "lon": 8.4244855, "order": 67}, {"lat": 49.3138657, "lon": 8.4263608, "order": 68}, {"lat": 49.3134177, "lon": 8.427958, "order": 69}, {"lat": 49.3129508, "lon": 8.42757, "order": 70}, {"lat": 49.3119576, "lon": 8.4268231, "order": 71}, {"lat": 49.3114835, "lon": 8.4268936, "order": 72}, {"lat": 49.3119576, "lon": 8.4268231, "order": 73}, {"lat": 49.3114818, "lon": 8.4264857, "order": 74}, {"lat": 49.3109032, "lon": 8.4261146, "order": 75}, {"lat": 49.3109662, "lon": 8.4258911, "order": 76}, {"lat": 49.3110159, "lon": 8.4259215, "order": 77}, {"lat": 49.3109662, "lon": 8.4258911, "order": 78}, {"lat": 49.3110251, "lon": 8.4256635, "order": 79}, {"lat": 49.3110878, "lon": 8.4257018, "order": 80}, {"lat": 49.3110251, "lon": 8.4256635, "order": 81}, {"lat": 49.3111049, "lon": 8.4254635, "order": 82}, {"lat": 49.3111564, "lon": 8.4254949, "order": 83}, {"lat": 49.3111049, "lon": 8.4254635, "order": 84}, {"lat": 49.3111919, "lon": 8.4251255, "order": 85}, {"lat": 49.3112138, "lon": 8.4251392, "order": 86}, {"lat": 49.3112495, "lon": 8.4244045, "order": 87}, {"lat": 49.3113979, "lon": 8.4238736, "order": 88}, {"lat": 49.3114839, "lon": 8.4235657, "order": 89}, {"lat": 49.3109753, "lon": 8.423016, "order": 90}, {"lat": 49.3108833, "lon": 8.4233576, "order": 91}, {"lat": 49.3108516, "lon": 8.4235376, "order": 92}, {"lat": 49.3108833, "lon": 8.4233576, "order": 93}, {"lat": 49.3102578, "lon": 8.4229522, "order": 94}, {"lat": 49.3097313, "lon": 8.4240952, "order": 95}, {"lat": 49.3105254, "lon": 8.4251075, "order": 96}, {"lat": 49.3097313, "lon": 8.4240952, "order": 97}, {"lat": 49.3089845, "lon": 8.4226815, "order": 98}, {"lat": 49.3098051, "lon": 8.4226681, "order": 99}, {"lat": 49.3102578, "lon": 8.4229522, "order": 100}, {"lat": 49.3105723, "lon": 8.4216996, "order": 101}, {"lat": 49.3102578, "lon": 8.4229522, "order": 102}, {"lat": 49.3098051, "lon": 8.4226681, "order": 103}, {"lat": 49.3100621, "lon": 8.421465, "order": 104}, {"lat": 49.3086506, "lon": 8.421734, "order": 105}, {"lat": 49.3100621, "lon": 8.421465, "order": 106}, {"lat": 49.3105723, "lon": 8.4216996, "order": 107}, {"lat": 49.3108728, "lon": 8.4213222, "order": 108}, {"lat": 49.311379, "lon": 8.4217528, "order": 109}, {"lat": 49.3118853, "lon": 8.4221545, "order": 110}, {"lat": 49.3116677, "lon": 8.422908, "order": 111}, {"lat": 49.3111132, "lon": 8.4225205, "order": 112}, {"lat": 49.311379, "lon": 8.4217528, "order": 113}, {"lat": 49.3111132, "lon": 8.4225205, "order": 114}, {"lat": 49.3109753, "lon": 8.423016, "order": 115}, {"lat": 49.3114839, "lon": 8.4235657, "order": 116}, {"lat": 49.3116677, "lon": 8.422908, "order": 117}, {"lat": 49.3118853, "lon": 8.4221545, "order": 118}, {"lat": 49.3125903, "lon": 8.4227926, "order": 119}, {"lat": 49.3121904, "lon": 8.4242286, "order": 120}, {"lat": 49.3118347, "lon": 8.4255561, "order": 121}, {"lat": 49.3121904, "lon": 8.4242286, "order": 122}, {"lat": 49.3128303, "lon": 8.4246003, "order": 123}, {"lat": 49.312514, "lon": 8.4259581, "order": 124}, {"lat": 49.313334, "lon": 8.4262016, "order": 125}, {"lat": 49.312514, "lon": 8.4259581, "order": 126}, {"lat": 49.3123263, "lon": 8.4258617, "order": 127}, {"lat": 49.3126614, "lon": 8.4266875, "order": 128}, {"lat": 49.3123263, "lon": 8.4258617, "order": 129}, {"lat": 49.3118347, "lon": 8.4255561, "order": 130}, {"lat": 49.3117406, "lon": 8.4254929, "order": 131}, {"lat": 49.3112138, "lon": 8.4251392, "order": 132}, {"lat": 49.3117406, "lon": 8.4254929, "order": 133}, {"lat": 49.3114818, "lon": 8.4264857, "order": 134}, {"lat": 49.3109032, "lon": 8.4261146, "order": 135}, {"lat": 49.3107185, "lon": 8.4259801, "order": 136}, {"lat": 49.3106301, "lon": 8.4263825, "order": 137}, {"lat": 49.3105581, "lon": 8.426276, "order": 138}, {"lat": 49.3100371, "lon": 8.425405, "order": 139}, {"lat": 49.3103489, "lon": 8.4257086, "order": 140}];
+
+  const paths = [];
+  paths.push(path1);
+  paths.push(path2);
+
+  // fetch('http://localhost:8000/path.geojson')
+  //   .then(response => response.json())
+  //   .then(data => {
+  //     nodes = data.sort((a, b) => a.order - b.order);
+  //     initMap();
+  //     createGoogleDirectionsLinks();
+  //   })
+  //   .catch(err => {
+  //     console.error('Failed to load nodes.json:', err);
+  //     alert('Failed to load path data.');
+  //   });
+
+  //nodes = path1.sort((a, b) => a.order - b.order);
+  nodes = path1.sort((a, b) => a.order - b.order);
+  initMap();
+
+  //createGoogleDirectionsLinks();
+
+  function select(index) {
+    console.log('select', index);
+    nodes = paths[index];
+    resetMap();
+    map.setView([nodes[0].lat, nodes[0].lon], 15);
+    drawMarkers();
+  }
+
+  function drawMarkers() {
+    // Draw all nodes as small blue dots
+    nodes.forEach(node => {
+      const marker = L.circleMarker([node.lat, node.lon], {
+        radius: 2,
+        color: 'blue',
+        fillOpacity: 1
+      }).addTo(map);
+      nodeMarkers.push(marker);
+    });
+
+    // Add the green "current node" marker
+    currentNodeMarker = L.circleMarker([nodes[0].lat, nodes[0].lon], {
+      radius: 10,
+      color: 'green',
+      fillColor: 'green',
+      fillOpacity: 1
+    }).addTo(map);
+  }
+
+  function initMap() {
+    map = L.map('map').setView([nodes[0].lat, nodes[0].lon], 15);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    drawMarkers();
+
+    // Set up buttons
+    document.getElementById('nextEdge').addEventListener('click', showNextEdge);
+    document.getElementById('prevEdge').addEventListener('click', showPrevEdge);
+  }
+
+  function resetMap() {
+    // Remove all drawn edges from map
+    edges.forEach(edge => map.removeLayer(edge));
+    edges.length = 0;
+
+    // Remove all node markers
+    nodeMarkers.forEach(marker => map.removeLayer(marker));
+    nodeMarkers.length = 0;
+
+    // Reset current node marker
+    edgeIndex = 0;
+    currentNodeMarker.setLatLng([nodes[0].lat, nodes[0].lon]);
+  }
+
+  function chunkArray(arr, chunkSize = 25) {
+    const result = [];
+    for (let i = 0; i < arr.length; i += chunkSize) {
+      result.push(arr.slice(i, i + chunkSize));
+    }
+    return result;
+  }
+
+  function createGoogleDirectionsLinks() {
+    if (nodes.length < 2) return;
+
+    const chunkedNodes = chunkArray(nodes);
+
+    const baseUrl = 'https://www.google.com/maps/dir/';
+    let directionsIndex = 0;
+
+    for (let i in chunkedNodes) {
+      const path = chunkedNodes[i].map(n => `${n.lat},${n.lon}`).join('/');
+      const fullUrl = baseUrl + path;
+      directionsLinks.push(fullUrl);
+    }
+
+    const button = document.createElement('input');
+    button.type = 'button';
+    button.value = 'Next directions';
+    button.onclick = (() => {
+      if (directionsIndex < directionsLinks.length) {
+        const url = directionsLinks[directionsIndex];
+        window.open(url);
+        directionsIndex++;
+      }
+    });
+    document.getElementById('controls').appendChild(button);
+  }
+
+  function showPrevEdge() {
+    if (edgeIndex > 0) {
+      edgeIndex--;
+
+      // Remove the last edge from the map and the array
+      const lastEdge = edges.pop();
+      map.removeLayer(lastEdge);
+
+      // Move the marker back to the previous node
+      const prevNode = nodes[edgeIndex];
+      currentNodeMarker.setLatLng([prevNode.lat, prevNode.lon]);
+    } else {
+      alert('Already at the start of the path!');
+    }
+  }
+
+  function showNextEdge() {
+    if (edgeIndex < nodes.length - 1) {
+      const from = nodes[edgeIndex];
+      const to = nodes[edgeIndex + 1];
+
+      const edge = L.polyline([
+        [from.lat, from.lon],
+        [to.lat, to.lon]
+      ], {
+        color: 'red',
+        weight: 4
+      }).addTo(map);
+
+      edges.push(edge);
+
+      currentNodeMarker.setLatLng([to.lat, to.lon]);
+
+      edgeIndex++;
+    } else {
+      alert('Ende des Pfades erreicht.');
+    }
+  }
+</script>
+
+</body>
+</html>

@@ -55,14 +55,27 @@ def getSubGraph(G, polygon):
 
 if __name__ == '__main__':
     place_name = 'Speyer, Germany'
-    section = 'sectors.geojson'
+    section = 'sector4.geojson'
 
     with open(section, 'r') as f:
         geojson = json.load(f)
     polygon = shape(geojson['features'][0]['geometry'])
 
     G = ox.graph_from_place(place_name, network_type='walk')
-    G_sub = getSubGraph(G, polygon).to_undirected()
+
+    G_sub2 = getSubGraph(G, polygon).to_undirected()
+    print("Is clipped graph connected:", nx.is_connected(G_sub2))
+    components = list(nx.connected_components(G_sub2))
+    print(f"Number of connected components: {len(components)}")
+
+    for i, component_nodes in enumerate(components, start=1):
+        subgraph = G_sub2.subgraph(component_nodes)
+        num_nodes = subgraph.number_of_nodes()
+        num_edges = subgraph.number_of_edges()
+        print(f"Component {i}: {num_nodes} nodes, {num_edges} edges")
+
+    first_component_nodes = components[0]
+    G_sub = G_sub2.subgraph(first_component_nodes).copy()
 
     fig, ax = ox.plot_graph(G_sub, show=False, save=True, filepath='clipped_graph.png')
 
